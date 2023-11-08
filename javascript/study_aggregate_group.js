@@ -1,4 +1,15 @@
-// 실습 aggregate
+// 실습 aggregate_group
+
+// aggregate 집계합수 총 정리
+
+$match = where
+// $project = select 칼럼 선택  ($max, $min, $filter)
+// $sort = order by
+$unwind
+$group ($max, $min, $sum, $avg)
+$skip
+$limit
+$lookup
 
 // 1. 샘플 데이터 입력
 

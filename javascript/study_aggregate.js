@@ -1,5 +1,17 @@
 // 실습 aggregate
 
+// aggregate 집계합수 총 정리
+
+$match = where
+// $project = select 칼럼 선택  ($max, $min, $filter)
+// $sort = order by
+$unwind
+$group ($max, $min, $sum, $avg)
+$skip
+$limit
+$lookup
+
+
 db.users.find({id:10}).pretty();
 
 // aggregate = ()안에 오브젝트가 아닌 []배열이 들어가야 한다
