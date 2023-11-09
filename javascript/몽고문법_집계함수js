@@ -1,0 +1,122 @@
+
+// count = collections내 문서의 갯수
+
+db.board.count();
+// find({})조건내의 갯수
+db.board.find({}).count();
+db.board.find({name:"noe"}).count();
+
+// -----------------------------------------------------------------------------------------------
+
+// distinct = 지정된 키에 대한 중복제거(주어진 키의 고유한 값 찾기)
+
+// collections과 키를 반드시 지정해야 함
+db.runCommand({"distinct":"board", "key":"name"});
+// collections이름을 직접 쓰고 중복제거를 지정
+// 3000보다 $lt = 작은 값일 때 제거하라
+db.board.distinct("components.number", {"components.number": {$lt:5000}});
+
+// -----------------------------------------------------------------------------------------------
+
+// group = 지정된 키에 대한 그룹핑
+db.board.group({key:{age:1}, initial:{ count:0}, $reduce:"function (obj, prev){prev.count ++;}"});
+// access라는 collections에서 group을 수행
+db.access.group(
+    {
+        "key": {"path": 1},   // grouping이 될 key 값을 지정
+    "initial": {"count": 0},  // count 값을 0으로 초기화
+    "reduce": function(curr, result) {
+     result.coun++;           // 집계시 result의 count값에 1씩 누적   
+    }
+});
+
+// -----------------------------------------------------------------------------------------------
+
+// aggregate = articles컬렉션에서 aggregate를 실행
+db.articles.aggregate(
+    {"$project": {"author":1}},                           // 기자순으로 추출
+    {"$group": {"_id":"$author", "count":{"$sum":1}}},    // 기자의 카운트를 누적
+    {"$sort": {"count": -1}},                             // 카운트된 숫자를 기준으로 내림차순 정렬
+    {"$limit": 5}                                         // 5개까지
+    );
+
+// 실행 후 나온 값 - 가장 기사를 많이 쓴 5명의 기자를 추출성공
+// {
+//     "result":[
+//         {"_id":"홍길동","count":430},
+//         {"_id":"임꺽정","count":330},
+//         {"_id":"장길산","count":250},
+//         {"_id":"이순신","count":194},
+//         {"_id":"장발장","count":152},
+//     ],
+//     "ok":1
+// }
+
+// populatePhones 함수 생성
+populatePhones = function(area,start,stop) {
+    for (var i = start;  i < stop; i++) {
+        var country = 1 + ((Math.random() *8) << 0);
+        var num = (country * 1e10) + (area * 1e7) + i;
+        db.phones.insert({_id:num, components:{country: country, area: area, prefix: (i * 1e4) << 0, number: i}, display: '+' +country+ ' ' +area+'-'+i});
+    }
+}
+// populatePhones 함수를 이용하여 데이터 생성
+populatePhones(800,5550000,5650000);
+
+
+// 입력 값 확인
+db.phones.find().limit(2);
+db.phones.find().limit(2).pretty();
+
+// index 생성으로 검색해보기
+db.phones.ensureIndex({display: 1}, {unique: true, dropDups: true});
+
+// count = 조건에 맞는 값 새어보기
+db.phones.count({"components.number": {"$gt" :5599999}});
+
+// 중복 데이터를 한번더 생성
+populatePhones(855,5550000,5650000);
+
+// count = 조건에 맞는 값 새어보기 - 전에 비해 두배의 데이터가 찾아짐
+db.phones.count({"components.number": {"$gt" :5599999}});
+
+// distinct = 중복을 제거하고 count 값을 얻기
+db.phones.distinct("components.number", {"components.number": {"$lt": 5550005}});
+
+// 실행 후 나온 값 - 550005 보다 작은 값을 중복 제거하고 찾음
+[ 5550000, 5550001, 5550002, 5550003, 5550004 ]
+
+db.phones.deleteMany({});
+db.phones.count();
+
+// -----------------------------------------------------------------------------------------------
+
+// aggregate = 그룹 명령어로 집계함수를 실행해보기
+db.phones.aggregate([
+    {
+        $match: {
+            "components.number": { "$gt": 5599999 }
+        }
+    },
+    {
+        $group: {
+            _id: "$components.area",
+            count: { $sum: 1 }
+        }
+    },
+    {
+        $project: {            
+            "_id": 0, 
+            "components.area": "$_id",          
+            "count": 1
+        }
+    }
+]);
+
+// group = 이제는 입력이 안되는 예전 버전 방식
+db.phones.group({
+   initial: {count: 0},                                       
+    reduce: function(phone, output) { output.count++; },
+     cond: {"components.number": {"$gt": 5599999}}, // 조건
+     key: {"components.area": true}
+   });

@@ -11,7 +11,6 @@ $skip
 $limit
 $lookup
 
-
 db.users.find({id:10}).pretty();
 
 // aggregate = ()안에 오브젝트가 아닌 []배열이 들어가야 한다
